@@ -15,6 +15,6 @@ This project analyzes blockchain transaction data and visualizes insights using 
 
 ## Team Members
 - Navya Singh
-- Teammate Name
+- Anshika Gupta
 # blockchain-transaction-analytics-dashboard
 A blockchain transaction analytics dashboard using Tableau for visualizing blockchain activity trends.
