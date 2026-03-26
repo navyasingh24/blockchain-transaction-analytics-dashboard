@@ -34,14 +34,14 @@ The dashboard provides an **interactive interface** for exploring blockchain dat
 
 - **Transaction Activity Over Time** (Line Chart)  
 - **Top Tokens by Transaction Count** (Bar Chart)  
-- 🧩 **Transaction Distribution by Token** (Treemap)  
-- 👛 **Top Active Wallets** (Bar Chart)  
-- ⚡ **Transaction Value vs Gas Fee** (Scatter Plot, Log Scale)  
-- 🎛️ Interactive filters and cross-chart interactions  
+- **Transaction Distribution by Token** (Treemap)  
+-  **Top Active Wallets** (Bar Chart)  
+- **Transaction Value vs Gas Fee** (Scatter Plot, Log Scale)  
+- Interactive filters and cross-chart interactions  
 
 ---
 
-## 💡 Key Insights
+##  Key Insights
 
 - Certain tokens (e.g., ANON) dominate transaction activity  
 - Transaction volume fluctuates significantly over time  
@@ -50,7 +50,7 @@ The dashboard provides an **interactive interface** for exploring blockchain dat
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Tableau Public** – Data visualization  
 - **HTML, CSS, JavaScript** – Website development  
@@ -59,7 +59,7 @@ The dashboard provides an **interactive interface** for exploring blockchain dat
 
 ---
 
-## 🚀 Future Improvements
+## Future Improvements
 
 - Integration with real-time blockchain APIs (e.g., Etherscan API)  
 - Fraud detection using machine learning  
@@ -69,13 +69,13 @@ The dashboard provides an **interactive interface** for exploring blockchain dat
 
 ---
 
-## 👩‍💻 Author
+## Author
 
-**Anshika Gupta** & **Navya Singh** 
+**Anshika Gupta- 23FE10CSE00246** & **Navya Singh- 23FE10CSE00349** 
 
 ---
 
-## ⭐ Acknowledgements
+## Acknowledgements
 
 - Tableau for powerful visualization tools  
 - Etherscan for blockchain data  
