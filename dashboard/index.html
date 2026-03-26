@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ERC20 Blockchain Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0e1420;
+    --surface2: #131a26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --accent4: #10b981;
+    --text: #e8edf5;
+    --muted: #6b7a99;
+    --danger: #ef4444;
+    --grid: rgba(255,255,255,0.03);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 5%, rgba(0,229,255,0.045) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 80%, rgba(124,58,237,0.05) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 28px 32px; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-area { display: flex; align-items: center; gap: 14px; }
+  .logo-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(0,229,255,0.3);
+  }
+  .logo-text h1 {
+    font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800;
+    letter-spacing: 0.04em; color: var(--text);
+  }
+  .logo-text p { font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+    padding: 5px 12px; border-radius: 20px; font-size: 10px;
+    color: var(--accent4); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent4); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+  .last-update { font-size: 10px; color: var(--muted); }
+
+  /* ── FILTERS ── */
+  .filters {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 24px; padding: 16px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+  .filter-select, .filter-input {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    cursor: pointer; outline: none; transition: border-color .2s;
+    min-width: 130px;
+  }
+  .filter-select:hover, .filter-input:hover { border-color: rgba(0,229,255,0.3); }
+  .filter-select:focus, .filter-input:focus { border-color: var(--accent); }
+  .filter-divider { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
+  .filter-btn {
+    padding: 6px 16px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 8px; color: #000; font-family: 'Syne',sans-serif;
+    font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.05em;
+    transition: opacity .2s, transform .1s;
+  }
+  .filter-btn:hover { opacity: .85; transform: translateY(-1px); }
+  .filter-btn:active { transform: translateY(0); }
+
+  /* ── KPI ROW ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    position: relative; overflow: hidden;
+    transition: border-color .2s, transform .2s;
+    animation: fadeUp .5s ease both;
+  }
+  .kpi-card:hover { border-color: rgba(0,229,255,0.25); transform: translateY(-2px); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.c1::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card.c2::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .kpi-card.c3::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .kpi-card.c4::before { background: linear-gradient(90deg, var(--accent4), transparent); }
+  .kpi-card.c5::before { background: linear-gradient(90deg, var(--danger), transparent); }
+  .kpi-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 10px; }
+  .kpi-value { font-family: 'Syne',sans-serif; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; }
+  .kpi-sub { margin-top: 8px; font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+  .kpi-sub .delta { font-size: 10px; font-weight: 600; }
+  .delta.up { color: var(--accent4); }
+  .delta.down { color: var(--danger); }
+  .kpi-icon {
+    position: absolute; right: 18px; top: 18px;
+    font-size: 22px; opacity: .15;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── GRID LAYOUTS ── */
+  .section-label {
+    font-family: 'Syne',sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-2b { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; margin-bottom: 16px; }
+
+  /* ── CHART CARDS ── */
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; position: relative;
+    animation: fadeUp .6s ease both;
+  }
+  .chart-card:hover { border-color: rgba(255,255,255,0.1); }
+  .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  .chart-title { font-family: 'Syne',sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
+  .chart-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .chart-badge {
+    font-size: 9px; padding: 3px 8px; border-radius: 6px;
+    background: rgba(0,229,255,0.08); color: var(--accent); border: 1px solid rgba(0,229,255,0.2);
+    letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ── TREEMAP ── */
+  .treemap {
+    width: 100%; aspect-ratio: 16/9;
+    display: grid; gap: 3px;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+  }
+  .tm-cell {
+    border-radius: 6px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 6px; cursor: pointer;
+    transition: filter .15s, transform .15s;
+    overflow: hidden; position: relative;
+  }
+  .tm-cell:hover { filter: brightness(1.25); transform: scale(1.02); z-index: 2; }
+  .tm-cell .tm-name { font-family: 'Syne',sans-serif; font-size: 11px; font-weight: 700; color: #fff; }
+  .tm-cell .tm-val { font-size: 9px; color: rgba(255,255,255,.65); margin-top: 2px; }
+
+  /* ── WALLET TABLE ── */
+  .wallet-table { width: 100%; border-collapse: collapse; }
+  .wallet-table th {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--muted); text-align: left; padding: 0 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wallet-table td { padding: 9px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; }
+  .wallet-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .wallet-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .wallet-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; }
+  .wallet-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .wallet-addr { color: var(--accent); font-size: 10px; }
+  .rank-num { color: var(--muted); font-size: 10px; width: 18px; text-align: right; }
+
+  /* ── TOOLTIP ── */
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 100;
+    background: #1a2235; border: 1px solid rgba(0,229,255,0.3);
+    border-radius: 10px; padding: 12px 14px; font-size: 11px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.5);
+    opacity: 0; transition: opacity .15s;
+    min-width: 160px;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip-title { font-family: 'Syne',sans-serif; font-weight: 700; font-size: 12px; margin-bottom: 6px; color: var(--accent); }
+  .tooltip-row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); margin-top: 3px; }
+  .tooltip-row span:last-child { color: var(--text); font-weight: 500; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: var(--muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* Stagger animations */
+  .kpi-card:nth-child(1){animation-delay:.05s}
+  .kpi-card:nth-child(2){animation-delay:.1s}
+  .kpi-card:nth-child(3){animation-delay:.15s}
+  .kpi-card:nth-child(4){animation-delay:.2s}
+  .kpi-card:nth-child(5){animation-delay:.25s}
+
+  @media(max-width:1100px){ .kpi-row{grid-template-columns:repeat(3,1fr)} .grid-2,.grid-2b{grid-template-columns:1fr} .grid-3{grid-template-columns:1fr 1fr} }
+  @media(max-width:700px){ .kpi-row{grid-template-columns:1fr 1fr} .grid-3{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">⬡</div>
+      <div class="logo-text">
+        <h1>CHAIN LENS</h1>
+        <p>ERC-20 Token Analytics · Ethereum Mainnet</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div>Live Sync</div>
+      <div class="last-update">Last update: <span id="ts"></span></div>
+    </div>
+  </header>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <div class="filter-group">
+      <span class="filter-label">Date Range</span>
+      <select class="filter-select" id="fDate" onchange="applyFilters()">
+        <option value="7">Last 7 Days</option>
+        <option value="30" selected>Last 30 Days</option>
+        <option value="90">Last 90 Days</option>
+        <option value="365">Last Year</option>
+      </select>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Token</span>
+      <select class="filter-select" id="fToken" onchange="applyFilters()">
+        <option value="all">All Tokens</option>
+        <option value="USDT">USDT</option>
+        <option value="USDC">USDC</option>
+        <option value="LINK">LINK</option>
+        <option value="UNI">UNI</option>
+        <option value="AAVE">AAVE</option>
+        <option value="SHIB">SHIB</option>
+      </select>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Wallet</span>
+      <input class="filter-input" id="fWallet" placeholder="0x... address" onchange="applyFilters()"/>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Min Value (ETH)</span>
+      <select class="filter-select" id="fMinVal" onchange="applyFilters()">
+        <option value="0">Any</option>
+        <option value="0.01">≥ 0.01</option>
+        <option value="0.1">≥ 0.1</option>
+        <option value="1">≥ 1.0</option>
+        <option value="10">≥ 10</option>
+      </select>
+    </div>
+    <button class="filter-btn" onclick="resetFilters()">↺ Reset</button>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card c1">
+      <div class="kpi-label">Total Transactions</div>
+      <div class="kpi-value" id="kpi-tx">2.41M</div>
+      <div class="kpi-sub"><span class="delta up">↑ 12.4%</span> vs prev period</div>
+      <div class="kpi-icon">⟳</div>
+    </div>
+    <div class="kpi-card c2">
+      <div class="kpi-label">Total Volume</div>
+      <div class="kpi-value" id="kpi-vol">$8.73B</div>
+      <div class="kpi-sub"><span class="delta up">↑ 7.2%</span> vs prev period</div>
+      <div class="kpi-icon">◎</div>
+    </div>
+    <div class="kpi-card c3">
+      <div class="kpi-label">Unique Wallets</div>
+      <div class="kpi-value" id="kpi-wallets">418K</div>
+      <div class="kpi-sub"><span class="delta down">↓ 2.1%</span> vs prev period</div>
+      <div class="kpi-icon">⬡</div>
+    </div>
+    <div class="kpi-card c4">
+      <div class="kpi-label">Avg Gas Fee</div>
+      <div class="kpi-value" id="kpi-gas">18.3 Gwei</div>
+      <div class="kpi-sub"><span class="delta down">↓ 5.8%</span> vs prev period</div>
+      <div class="kpi-icon">⚡</div>
+    </div>
+    <div class="kpi-card c5">
+      <div class="kpi-label">Active Tokens</div>
+      <div class="kpi-value" id="kpi-tokens">184</div>
+      <div class="kpi-sub"><span class="delta up">↑ 3</span> new this period</div>
+      <div class="kpi-icon">◈</div>
+    </div>
+  </div>
+
+  <!-- SECTION: ACTIVITY OVER TIME -->
+  <div class="section-label">Transaction Activity</div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Daily Transaction Volume & Count</div>
+          <div class="chart-sub">On-chain activity — 30-day rolling window, ERC-20 transfers only</div>
+        </div>
+        <div class="chart-badge">Line · Dual Axis</div>
+      </div>
+      <div class="chart-wrap"><canvas id="lineChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Transaction Value vs Gas Fee</div>
+          <div class="chart-sub">Log-scale scatter — identifies fee inefficiency clusters</div>
+        </div>
+        <div class="chart-badge">Scatter · Log</div>
+      </div>
+      <div class="chart-wrap"><canvas id="scatterChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SECTION: TOKEN BREAKDOWN -->
+  <div class="section-label">Token Breakdown</div>
+  <div class="grid-2b" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Top Tokens by Transaction Count</div>
+          <div class="chart-sub">Most actively transferred ERC-20 tokens (30 days)</div>
+        </div>
+        <div class="chart-badge">Bar · Ranked</div>
+      </div>
+      <div class="chart-wrap"><canvas id="barChart" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Volume Share by Token</div>
+          <div class="chart-sub">Proportional distribution of total transfer value</div>
+        </div>
+        <div class="chart-badge">Treemap · Area</div>
+      </div>
+      <div id="treemap" class="treemap"></div>
+    </div>
+  </div>
+
+  <!-- SECTION: WALLETS -->
+  <div class="section-label">Wallet Intelligence</div>
+  <div class="grid-2" style="margin-bottom:0">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Most Active Wallets by Send Volume</div>
+          <div class="chart-sub">Top 8 addresses ranked by total ETH-equivalent sent</div>
+        </div>
+        <div class="chart-badge">Bar · Horizontal</div>
+      </div>
+      <div class="chart-wrap"><canvas id="walletBar" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Wallet Activity Leaderboard</div>
+          <div class="chart-sub">Transaction count, volume, and primary token per address</div>
+        </div>
+        <div class="chart-badge">Table · Interactive</div>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="wallet-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Address</th>
+            <th>Token</th>
+            <th>Tx Count</th>
+            <th>Volume (ETH)</th>
+            <th>Activity</th>
+          </tr>
+        </thead>
+        <tbody id="walletTableBody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end wrapper -->
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tt-title"></div>
+  <div id="tt-body"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+const DAYS = 30;
+function rng(seed){ let s=seed; return ()=>{ s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; }; }
+const R = rng(42);
+
+// Line chart data
+const labels = [];
+const txCounts = [], volumes = [];
+const base = new Date(); base.setDate(base.getDate()-DAYS);
+for(let i=0;i<DAYS;i++){
+  const d=new Date(base); d.setDate(d.getDate()+i);
+  labels.push(d.toLocaleDateString('en',{month:'short',day:'numeric'}));
+  txCounts.push(Math.floor(50000+R()*60000+Math.sin(i/3)*15000));
+  volumes.push((100+R()*300+Math.cos(i/4)*80).toFixed(1));
+}
+
+// Scatter data
+const scatterData = Array.from({length:180},()=>({
+  x: Math.pow(10, R()*4-1),
+  y: Math.pow(10, R()*2.5+0.3)
+}));
+
+// Token bar data
+const tokens = ['USDT','USDC','LINK','UNI','AAVE','SHIB','WBTC','DAI','COMP','MKR'];
+const tokenCounts = [421000,308000,187000,156000,134000,121000,98000,87000,72000,61000];
+
+// Treemap data
+const tmData = [
+  {name:'USDT',pct:32,col:'rgba(38,161,123,.85)',span:[0,0,5,4]},
+  {name:'USDC',pct:24,col:'rgba(0,145,255,.8)',span:[5,0,4,4]},
+  {name:'LINK',pct:14,col:'rgba(41,126,203,.75)',span:[9,0,3,3]},
+  {name:'UNI',pct:10,col:'rgba(124,58,237,.7)',span:[0,4,3,2]},
+  {name:'AAVE',pct:8,col:'rgba(183,110,30,.7)',span:[3,4,3,2]},
+  {name:'SHIB',pct:5,col:'rgba(239,68,68,.65)',span:[6,3,3,3]},
+  {name:'WBTC',pct:3,col:'rgba(245,158,11,.65)',span:[9,3,3,2]},
+  {name:'Others',pct:4,col:'rgba(107,122,153,.5)',span:[6,6,6,1]},
+];
+
+// Wallet data
+const walletData = [
+  {addr:'0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE',tok:'USDT',txs:14821,vol:9423.1},
+  {addr:'0xA7EFae728D2936e78BDA97dc267687568dD593f3',tok:'USDC',txs:11234,vol:7811.5},
+  {addr:'0x0681d8Db095565FE8A346fA0277bFfdE9C0eDBBF',tok:'LINK',txs:9877,vol:6104.0},
+  {addr:'0x28C6c06298d514Db089934071355E5743bf21d60',tok:'USDT',txs:8432,vol:5238.3},
+  {addr:'0xDFd5293D8e347dFe59E90eFd55b2956a1343963d',tok:'UNI',txs:7109,vol:4512.7},
+  {addr:'0x1cB7FbA4FdD17D7AE97C41B74a2E0afb8E42498e',tok:'AAVE',txs:6234,vol:3901.2},
+  {addr:'0x9696f59E4d72E237BE84fFD425DCaD154Bf96976',tok:'SHIB',txs:5812,vol:3344.5},
+  {addr:'0x2b5634C42055806a59e9107ED44D43c426E58258',tok:'USDC',txs:4921,vol:2877.1},
+];
+
+// ── TIMESTAMP ────────────────────────────────────────
+document.getElementById('ts').textContent = new Date().toLocaleTimeString();
+setInterval(()=>{ document.getElementById('ts').textContent=new Date().toLocaleTimeString(); }, 5000);
+
+// ── CHART.JS DEFAULTS ────────────────────────────────
+Chart.defaults.color = '#6b7a99';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 10;
+
+// ── LINE CHART ───────────────────────────────────────
+const lineCtx = document.getElementById('lineChart').getContext('2d');
+const gradLine = lineCtx.createLinearGradient(0,0,0,200);
+gradLine.addColorStop(0,'rgba(0,229,255,0.18)'); gradLine.addColorStop(1,'rgba(0,229,255,0)');
+const gradVol = lineCtx.createLinearGradient(0,0,0,200);
+gradVol.addColorStop(0,'rgba(124,58,237,0.15)'); gradVol.addColorStop(1,'rgba(124,58,237,0)');
+
+const lineChart = new Chart(lineCtx, {
+  type:'line',
+  data:{
+    labels,
+    datasets:[
+      { label:'Tx Count', data:txCounts, borderColor:'#00e5ff', backgroundColor:gradLine,
+        borderWidth:2, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:'#00e5ff',
+        fill:true, tension:.4, yAxisID:'y' },
+      { label:'Volume (ETH)', data:volumes, borderColor:'#7c3aed', backgroundColor:gradVol,
+        borderWidth:2, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:'#7c3aed',
+        fill:true, tension:.4, yAxisID:'y1' }
+    ]
+  },
+  options:{
+    responsive:true, interaction:{mode:'index',intersect:false},
+    scales:{
+      x:{ grid:{color:'rgba(255,255,255,0.03)'}, ticks:{maxTicksLimit:8,color:'#6b7a99'} },
+      y:{ position:'left', grid:{color:'rgba(255,255,255,0.03)'}, ticks:{color:'#00e5ff',
+          callback:v=>v>=1000?Math.round(v/1000)+'K':v} },
+      y1:{ position:'right', grid:{display:false}, ticks:{color:'#7c3aed',
+           callback:v=>v+'Ξ'} }
+    },
+    plugins:{
+      legend:{ labels:{ color:'#6b7a99', boxWidth:10, padding:16 }},
+      tooltip:{ backgroundColor:'#1a2235', borderColor:'rgba(0,229,255,0.3)', borderWidth:1,
+        titleColor:'#00e5ff', bodyColor:'#e8edf5', padding:10, callbacks:{
+          label:ctx=>` ${ctx.dataset.label}: ${ctx.dataset.yAxisID==='y'?Number(ctx.raw).toLocaleString():ctx.raw+'Ξ'}`
+        }}
+    }
+  }
+});
+
+// ── SCATTER CHART ─────────────────────────────────────
+const scatterCtx = document.getElementById('scatterChart').getContext('2d');
+new Chart(scatterCtx, {
+  type:'scatter',
+  data:{ datasets:[{
+    label:'Transaction', data:scatterData,
+    backgroundColor:'rgba(0,229,255,0.35)',
+    pointRadius:3, pointHoverRadius:6,
+    pointBorderColor:'transparent'
+  }]},
+  options:{
+    responsive:true,
+    scales:{
+      x:{ type:'logarithmic', grid:{color:'rgba(255,255,255,0.04)'},
+          title:{display:true,text:'Transaction Value (ETH)',color:'#6b7a99',font:{size:9}},
+          ticks:{color:'#6b7a99', callback:v=>{
+            if(v===0.1)return '0.1Ξ'; if(v===1)return '1Ξ'; if(v===10)return '10Ξ'; if(v===100)return '100Ξ'; if(v===1000)return '1KΞ'; return '';
+          }}},
+      y:{ type:'logarithmic', grid:{color:'rgba(255,255,255,0.04)'},
+          title:{display:true,text:'Gas Fee (Gwei)',color:'#6b7a99',font:{size:9}},
+          ticks:{color:'#6b7a99', callback:v=>{
+            if([1,10,100,1000].includes(v))return v+'G'; return '';
+          }}}
+    },
+    plugins:{
+      legend:{display:false},
+      tooltip:{ backgroundColor:'#1a2235', borderColor:'rgba(0,229,255,0.3)', borderWidth:1,
+        titleColor:'#00e5ff', bodyColor:'#e8edf5', padding:10,
+        callbacks:{
+          title:()=>'Transaction Detail',
+          label:ctx=>[` Value: ${ctx.parsed.x.toFixed(3)} ETH`,` Gas: ${ctx.parsed.y.toFixed(1)} Gwei`]
+        }
+      }
+    }
+  }
+});
+
+// ── BAR CHART ─────────────────────────────────────────
+const barCtx = document.getElementById('barChart').getContext('2d');
+const barColors = ['#00e5ff','#00d2e8','#00bed1','#00aab9','#0096a2','#00838b','#006f74','#005c5d','#7c3aed','#9561ea'];
+new Chart(barCtx,{
+  type:'bar',
+  data:{
+    labels: tokens,
+    datasets:[{
+      label:'Transaction Count',
+      data: tokenCounts,
+      backgroundColor: barColors.map(c=>c+'cc'),
+      borderColor: barColors,
+      borderWidth:1, borderRadius:5, borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true, indexAxis:'y',
+    scales:{
+      x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a99', callback:v=>v>=1000?v/1000+'K':v} },
+      y:{ grid:{display:false}, ticks:{color:'#e8edf5', font:{size:11}} }
+    },
+    plugins:{
+      legend:{display:false},
+      tooltip:{ backgroundColor:'#1a2235', borderColor:'rgba(0,229,255,0.3)', borderWidth:1,
+        titleColor:'#00e5ff', bodyColor:'#e8edf5', padding:10,
+        callbacks:{
+          label:ctx=>` Transactions: ${Number(ctx.raw).toLocaleString()}`
+        }
+      }
+    }
+  }
+});
+
+// ── TREEMAP ───────────────────────────────────────────
+const tm = document.getElementById('treemap');
+tmData.forEach(d=>{
+  const cell = document.createElement('div');
+  cell.className='tm-cell';
+  cell.style.background=d.col;
+  cell.style.gridColumn=`${d.span[0]+1} / span ${d.span[2]}`;
+  cell.style.gridRow=`${d.span[1]+1} / span ${d.span[3]}`;
+  cell.innerHTML=`<div class="tm-name">${d.name}</div><div class="tm-val">${d.pct}%</div>`;
+  cell.addEventListener('mouseenter',e=>{
+    showTooltip(e,d.name,`Volume Share: <b style="color:#e8edf5">${d.pct}%</b><br>Category: <b style="color:#e8edf5">ERC-20</b>`);
+  });
+  cell.addEventListener('mouseleave',hideTooltip);
+  cell.addEventListener('mousemove',moveTooltip);
+  tm.appendChild(cell);
+});
+
+// ── WALLET BAR ────────────────────────────────────────
+const wbCtx = document.getElementById('walletBar').getContext('2d');
+new Chart(wbCtx,{
+  type:'bar',
+  data:{
+    labels: walletData.map(w=>w.addr.slice(0,6)+'…'+w.addr.slice(-4)),
+    datasets:[{
+      label:'Volume (ETH)',
+      data: walletData.map(w=>w.vol),
+      backgroundColor:'rgba(124,58,237,0.5)',
+      borderColor:'#7c3aed',
+      borderWidth:1, borderRadius:5, borderSkipped:false
+    },{
+      label:'Tx Count (÷10)',
+      data: walletData.map(w=>w.txs/10),
+      backgroundColor:'rgba(0,229,255,0.35)',
+      borderColor:'#00e5ff',
+      borderWidth:1, borderRadius:5, borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true, indexAxis:'y',
+    scales:{
+      x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a99', callback:v=>v>=1000?v/1000+'K':v} },
+      y:{ grid:{display:false}, ticks:{color:'#e8edf5', font:{size:9,family:"'JetBrains Mono',monospace"}} }
+    },
+    plugins:{
+      legend:{ labels:{color:'#6b7a99',boxWidth:10,padding:12}},
+      tooltip:{ backgroundColor:'#1a2235', borderColor:'rgba(0,229,255,0.3)', borderWidth:1,
+        titleColor:'#00e5ff', bodyColor:'#e8edf5', padding:10
+      }
+    }
+  }
+});
+
+// ── WALLET TABLE ──────────────────────────────────────
+const tbody = document.getElementById('walletTableBody');
+const maxVol = Math.max(...walletData.map(w=>w.vol));
+walletData.forEach((w,i)=>{
+  const tr=document.createElement('tr');
+  const pct=(w.vol/maxVol*100).toFixed(0);
+  tr.innerHTML=`
+    <td class="rank-num">${i+1}</td>
+    <td class="wallet-addr">${w.addr.slice(0,8)}…${w.addr.slice(-6)}</td>
+    <td style="color:var(--accent3)">${w.tok}</td>
+    <td>${w.txs.toLocaleString()}</td>
+    <td>${w.vol.toFixed(1)}</td>
+    <td>
+      <div class="wallet-bar-wrap">
+        <div class="wallet-bar-bg"><div class="wallet-bar-fill" style="width:${pct}%"></div></div>
+        <span style="font-size:9px;color:var(--muted)">${pct}%</span>
+      </div>
+    </td>`;
+  tbody.appendChild(tr);
+});
+
+// ── TOOLTIP HELPERS ───────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e,title,bodyHTML){
+  document.getElementById('tt-title').textContent=title;
+  document.getElementById('tt-body').innerHTML=bodyHTML;
+  tooltip.classList.add('show');
+  moveTooltip(e);
+}
+function moveTooltip(e){ tooltip.style.left=(e.clientX+14)+'px'; tooltip.style.top=(e.clientY-10)+'px'; }
+function hideTooltip(){ tooltip.classList.remove('show'); }
+
+// ── FILTERS ───────────────────────────────────────────
+function applyFilters(){
+  const days=+document.getElementById('fDate').value;
+  const token=document.getElementById('fToken').value;
+  // Simulate KPI update
+  const mult = days/30;
+  document.getElementById('kpi-tx').textContent=fmtNum(Math.floor(2410000*mult*(.8+Math.random()*.4)));
+  document.getElementById('kpi-vol').textContent='$'+fmtNum(Math.floor(8730000000*mult*(.8+Math.random()*.4)),true);
+  document.getElementById('kpi-wallets').textContent=fmtNum(Math.floor(418000*mult*(.8+Math.random()*.4)));
+}
+function resetFilters(){
+  document.getElementById('fDate').value='30';
+  document.getElementById('fToken').value='all';
+  document.getElementById('fWallet').value='';
+  document.getElementById('fMinVal').value='0';
+  document.getElementById('kpi-tx').textContent='2.41M';
+  document.getElementById('kpi-vol').textContent='$8.73B';
+  document.getElementById('kpi-wallets').textContent='418K';
+}
+function fmtNum(n,money=false){
+  if(n>=1e9)return(n/1e9).toFixed(2)+'B';
+  if(n>=1e6)return(n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return n.toLocaleString();
+}
+</script>
+</body>
+</html>
