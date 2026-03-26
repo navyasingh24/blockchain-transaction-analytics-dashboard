@@ -1,14 +1,14 @@
-# 🚀 Blockchain Transaction Analytics Dashboard
+# Blockchain Transaction Analytics Dashboard
 
 An interactive data visualization project built using **Tableau** to analyze ERC20 blockchain transactions and uncover key trends, wallet behavior, and transaction patterns.
 
-🌐 **Live Website:**  
+**Live Website:**  
 https://navyasingh24.github.io/blockchain-transaction-analytics-dashboard/
 
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 This project focuses on analyzing blockchain transaction data (ERC20 tokens) to extract meaningful insights such as:
 
@@ -21,7 +21,7 @@ The dashboard provides an **interactive interface** for exploring blockchain dat
 
 ---
 
-## 🎯 Objectives
+## Objectives
 
 - Visualize blockchain transaction data in an intuitive way  
 - Identify key trends and anomalies  
@@ -30,10 +30,10 @@ The dashboard provides an **interactive interface** for exploring blockchain dat
 
 ---
 
-## 📊 Dashboard Features
+## Dashboard Features
 
-- 📈 **Transaction Activity Over Time** (Line Chart)  
-- 📊 **Top Tokens by Transaction Count** (Bar Chart)  
+- **Transaction Activity Over Time** (Line Chart)  
+- **Top Tokens by Transaction Count** (Bar Chart)  
 - 🧩 **Transaction Distribution by Token** (Treemap)  
 - 👛 **Top Active Wallets** (Bar Chart)  
 - ⚡ **Transaction Value vs Gas Fee** (Scatter Plot, Log Scale)  
